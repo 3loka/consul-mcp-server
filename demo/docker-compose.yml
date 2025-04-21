@@ -1,0 +1,230 @@
+version: '3'
+
+services:
+  consul:
+    image: hashicorp/consul:latest
+    ports:
+      - "8500:8500"
+    command: "agent -dev -client=0.0.0.0 -bind=0.0.0.0"
+    networks:
+      - consul-net
+
+  consul-register:
+    image: curlimages/curl:latest
+    networks:
+      - consul-net
+    depends_on:
+      - consul
+    entrypoint: >
+      sh -c "
+        sleep 5;
+        echo 'Registering services...';
+
+        # Register API (Connect-enabled)
+        curl --silent -X PUT http://consul:8500/v1/agent/service/register -d '{
+          \"Name\": \"api\",
+          \"ID\": \"api-1\",
+          \"Port\": 9090,
+          \"Address\": \"service-api\",
+          \"Connect\": {\"SidecarService\": {}},
+          \"Check\": {
+            \"HTTP\": \"http://service-api:9090/health\",
+            \"Interval\": \"10s\"
+          }
+        }';
+
+        # Register Auth
+        curl --silent -X PUT http://consul:8500/v1/agent/service/register -d '{
+          \"Name\": \"auth\",
+          \"ID\": \"auth-1\",
+          \"Port\": 9090,
+          \"Address\": \"service-auth\",
+          \"Check\": {
+            \"HTTP\": \"http://service-auth:9090/health\",
+            \"Interval\": \"10s\"
+          }
+        }';
+
+        # Register Payment
+        curl --silent -X PUT http://consul:8500/v1/agent/service/register -d '{
+          \"Name\": \"payment\",
+          \"ID\": \"payment-1\",
+          \"Port\": 9090,
+          \"Address\": \"service-payment\",
+          \"Check\": {
+            \"HTTP\": \"http://service-payment:9090/health\",
+            \"Interval\": \"10s\"
+          }
+        }';
+
+        # Register Frontend (Connect-enabled)
+        curl --silent -X PUT http://consul:8500/v1/agent/service/register -d '{
+          \"Name\": \"frontend\",
+          \"ID\": \"frontend-1\",
+          \"Port\": 9090,
+          \"Address\": \"service-frontend\",
+          \"Connect\": {\"SidecarService\": {}},
+          \"Check\": {
+            \"HTTP\": \"http://service-frontend:9090/health\",
+            \"Interval\": \"10s\"
+          }
+        }';
+
+        # Register failing Analytics
+        curl --silent -X PUT http://consul:8500/v1/agent/service/register -d '{
+          \"Name\": \"analytics\",
+          \"ID\": \"analytics-1\",
+          \"Port\": 9090,
+          \"Address\": \"service-analytics\",
+          \"Check\": {
+            \"TTL\": \"10s\",
+            \"Status\": \"critical\",
+            \"Notes\": \"Fails intentionally for demo\"
+          }
+        }';
+
+        # Register warning Logging
+        curl --silent -X PUT http://consul:8500/v1/agent/service/register -d '{
+          \"Name\": \"logging\",
+          \"ID\": \"logging-1\",
+          \"Port\": 9090,
+          \"Address\": \"service-logging\",
+          \"Check\": {
+            \"TTL\": \"10s\",
+            \"Status\": \"warning\",
+            \"Notes\": \"High latency detected\"
+          }
+        }';
+
+        # Register database + cache without Connect
+        curl --silent -X PUT http://consul:8500/v1/agent/service/register -d '{
+          \"Name\": \"database\",
+          \"ID\": \"database-1\",
+          \"Port\": 9090,
+          \"Address\": \"service-database\",
+          \"Check\": {
+            \"HTTP\": \"http://service-database:9090/health\",
+            \"Interval\": \"10s\"
+          }
+        }';
+
+        curl --silent -X PUT http://consul:8500/v1/agent/service/register -d '{
+          \"Name\": \"cache\",
+          \"ID\": \"cache-1\",
+          \"Port\": 9090,
+          \"Address\": \"service-cache\",
+          \"Check\": {
+            \"HTTP\": \"http://service-cache:9090/health\",
+            \"Interval\": \"10s\"
+          }
+        }';
+
+        echo 'Services registered.'
+      "
+
+  service-api:
+    image: nicholasjackson/fake-service:v0.23.1
+    environment:
+      LISTEN_ADDR: 0.0.0.0:9090
+      NAME: api
+      MESSAGE: "API Service"
+      SERVER_TYPE: "http"
+      UPSTREAM_URIS: "http://service-auth:9090"
+    ports:
+      - "9091:9090"
+    networks:
+      - consul-net
+    depends_on:
+      - consul
+
+  service-auth:
+    image: nicholasjackson/fake-service:v0.23.1
+    environment:
+      LISTEN_ADDR: 0.0.0.0:9090
+      NAME: auth
+      MESSAGE: "Auth Service"
+      SERVER_TYPE: "http"
+      ERROR_RATE: 0.05
+    ports:
+      - "9092:9090"
+    networks:
+      - consul-net
+
+  service-payment:
+    image: nicholasjackson/fake-service:v0.23.1
+    environment:
+      LISTEN_ADDR: 0.0.0.0:9090
+      NAME: payment
+      MESSAGE: "Payment Service"
+      SERVER_TYPE: "http"
+    ports:
+      - "9093:9090"
+    networks:
+      - consul-net
+
+  service-database:
+    image: nicholasjackson/fake-service:v0.23.1
+    environment:
+      LISTEN_ADDR: 0.0.0.0:9090
+      NAME: database
+      MESSAGE: "Database Service"
+      SERVER_TYPE: "http"
+    ports:
+      - "9094:9090"
+    networks:
+      - consul-net
+
+  service-cache:
+    image: nicholasjackson/fake-service:v0.23.1
+    environment:
+      LISTEN_ADDR: 0.0.0.0:9090
+      NAME: cache
+      MESSAGE: "Cache Service"
+      SERVER_TYPE: "http"
+    ports:
+      - "9095:9090"
+    networks:
+      - consul-net
+
+  service-frontend:
+    image: nicholasjackson/fake-service:v0.23.1
+    environment:
+      LISTEN_ADDR: 0.0.0.0:9090
+      NAME: frontend
+      MESSAGE: "Frontend Service"
+      SERVER_TYPE: "http"
+      UPSTREAM_URIS: "http://service-api:9090"
+    ports:
+      - "9090:9090"
+    networks:
+      - consul-net
+
+  service-analytics:
+    image: nicholasjackson/fake-service:v0.23.1
+    environment:
+      LISTEN_ADDR: 0.0.0.0:9090
+      NAME: analytics
+      MESSAGE: "Analytics Service (Failing)"
+      SERVER_TYPE: "http"
+      ERROR_RATE: 1
+    ports:
+      - "9096:9090"
+    networks:
+      - consul-net
+
+  service-logging:
+    image: nicholasjackson/fake-service:v0.23.1
+    environment:
+      LISTEN_ADDR: 0.0.0.0:9090
+      NAME: logging
+      MESSAGE: "Logging Service (Warning)"
+      SERVER_TYPE: "http"
+      ERROR_RATE: 0.2
+    ports:
+      - "9097:9090"
+    networks:
+      - consul-net
+
+networks:
+  consul-net:
+    driver: bridge
