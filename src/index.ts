@@ -28,7 +28,7 @@ import { ServiceAnalyzer } from './tools/status-analyzer.js';
 config();
 
 // Default configuration values
-const DEFAULT_CONSUL_ADDR = 'http://localhost:8500';
+const DEFAULT_CONSUL_HTTP_ADDR = 'http://localhost:8500';
 const SERVER_NAME = "consul-mcp-server";
 const VERSION = "0.1.0";
 
@@ -36,13 +36,14 @@ const VERSION = "0.1.0";
 
 async function main() {
   try {
-    const consulAddr = process.env.CONSUL_ADDR || DEFAULT_CONSUL_ADDR;
+    const consulAddr = process.env.CONSUL_HTTP_ADDR || DEFAULT_CONSUL_HTTP_ADDR;
+    const consulToken = process.env.CONSUL_HTTP_TOKEN || undefined;
     
     console.error(`Starting Consul MCP Server...`);
     console.error(`Connecting to Consul at: ${consulAddr}`);
     
     // Initialize Consul client
-    const consulClient = await createConsulClient(consulAddr);
+    const consulClient = await createConsulClient(consulAddr, consulToken);
     
     // Initialize service managers
     const serviceManager = new ServiceManager(consulClient);

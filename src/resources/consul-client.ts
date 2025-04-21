@@ -278,7 +278,7 @@ export class ConsulClient {
   }
 }
 
-export async function createConsulClient(consulAddr: string): Promise<ConsulClient> {
+export async function createConsulClient(consulAddr: string, consulToken: string | undefined): Promise<ConsulClient> {
   let host = 'localhost';
   let port = 8500;
   let secure = false;
@@ -302,7 +302,10 @@ export async function createConsulClient(consulAddr: string): Promise<ConsulClie
     host,
     port: port.toString(), // 👈 convert number to string
     secure,
-    promisify: true
+    promisify: true,
+    defaults: {
+      token: consulToken
+    }
   });
   
   return new ConsulClient(client);
