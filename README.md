@@ -40,12 +40,14 @@ npm run build
 Create a `.env` file in the root directory with the following variables:
 
 ```
-CONSUL_ADDR=http://localhost:8500
+CONSUL_HTTP_ADDR=http://localhost:8500
+CONSUL_HTTP_TOKEN=your-consul-token
 PORT=3000
 USE_HTTP=true
 ```
 
-* `CONSUL_ADDR`: Address of your Consul server
+* `CONSUL_HTTP_ADDR`: Address of your Consul server
+* `CONSUL_HTTP_TOKEN`: ACL token of your Consul server
 * `PORT`: Port for the HTTP server
 * `USE_HTTP`: Set to "true" for HTTP mode, omit for stdio mode
 
