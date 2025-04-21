@@ -91,6 +91,22 @@ To install and use this MCP server in Claude Desktop:
 }
 ```
 
+if the server is not local host or ACL is enabled, use below configuration instead
+```json
+{
+    "mcpServers": {
+      "consul-assistant": {
+        "command": "npx",
+        "args": ["-y", "consul-mcp-server"],
+        "env": {
+          "CONSUL_HTTP_ADDR": "http://<host/ip>:8500",
+          "CONSUL_HTTP_TOKEN": "<ACL Token>"
+        }
+      }
+    }
+  }
+```
+
 4. Restart Claude Desktop to ensure the MCP server is properly loaded.
 
 ## Example Prompts
